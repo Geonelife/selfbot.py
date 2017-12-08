@@ -971,10 +971,10 @@ Thanks for your understanding.
         '''Auto Update command, checks if you have latest version
         Use tags github-token to find out how to set up this token'''
         git = self.bot.get_cog('Git')
-        if not await git.starred('verixx/selfbot.py'): return await ctx.send('**This command is disabled as the user have not starred <https://github.com/verixx/selfbot.py>**')
+        if not await git.starred('kyb3r/selfbot.py'): return await ctx.send('**This command is disabled as the user have not starred <https://github.com/kyb3r/selfbot.py>**')
         # get username
         username = await git.githubusername()
-        async with ctx.session.get('https://api.github.com/repos/verixx/selfbot.py/git/refs/heads/rewrite', headers={"Authorization": f"Bearer {git.githubtoken}"}) as resp:
+        async with ctx.session.get('https://api.github.com/repos/kyb3r/selfbot.py/git/refs/heads/rewrite', headers={"Authorization": f"Bearer {git.githubtoken}"}) as resp:
             if 300 > resp.status >= 200:
                 async with ctx.session.post(f'https://api.github.com/repos/{username}/selfbot.py/merges', json={"head": (await resp.json())['object']['sha'], "base": "rewrite", "commit_message": "Updating Bot"}, headers={"Authorization": f"Bearer {git.githubtoken}"}) as resp2:
                     if 300 > resp2.status >= 200:
@@ -1050,12 +1050,12 @@ Thanks for your understanding.
     async def cc(self, ctx):
         '''Custom Commands!'''
         git = self.bot.get_cog('Git')
-        if not await git.starred('verixx/selfbot.py'): return await ctx.send('**This command is disabled as the user have not starred <https://github.com/verixx/selfbot.py>**')
+        if not await git.starred('kyb3r/selfbot.py'): return await ctx.send('**This command is disabled as the user have not starred <https://github.com/kyb3r/selfbot.py>**')
     @cc.command(aliases=['create', 'add'])
     async def make(self, ctx, name, *, content):
         '''Create a custom command! Include `{pycc}` in the content to specify a pycc!'''
         git = self.bot.get_cog('Git')
-        if not await git.starred('verixx/selfbot.py'): return await ctx.send('**This command is disabled as the user have not starred <https://github.com/verixx/selfbot.py>**')
+        if not await git.starred('kyb3r/selfbot.py'): return await ctx.send('**This command is disabled as the user have not starred <https://github.com/kyb3r/selfbot.py>**')
         if discord.utils.get(bot.commands, name=name) != None:
             return await ctx.send('This is already an existing command.')
         with open('data/cc.json') as f:
@@ -1084,7 +1084,7 @@ Thanks for your understanding.
     async def edit(self, ctx, name, *, content):
         '''Edits a currently existing custom command'''
         git = self.bot.get_cog('Git')
-        if not await git.starred('verixx/selfbot.py'): return await ctx.send('**This command is disabled as the user have not starred <https://github.com/verixx/selfbot.py>**')
+        if not await git.starred('kyb3r/selfbot.py'): return await ctx.send('**This command is disabled as the user have not starred <https://github.com/kyb3r/selfbot.py>**')
         with open('data/cc.json') as f:
             commands = json.load(f)
         try:
@@ -1106,7 +1106,7 @@ Thanks for your understanding.
     async def delete(self, ctx, *, name):
         '''Deletes a custom command'''
         git = self.bot.get_cog('Git')
-        if not await git.starred('verixx/selfbot.py'): return await ctx.send('**This command is disabled as the user have not starred <https://github.com/verixx/selfbot.py>**')
+        if not await git.starred('kyb3r/selfbot.py'): return await ctx.send('**This command is disabled as the user have not starred <https://github.com/kyb3r/selfbot.py>**')
         with open('data/cc.json') as f:
             commands = json.load(f)
         try:
@@ -1130,7 +1130,7 @@ Thanks for your understanding.
     async def _list(self, ctx, option:str = 'all'):
         '''Displays a list of your current custom commands'''
         git = self.bot.get_cog('Git')
-        if not await git.starred('verixx/selfbot.py'): return await ctx.send('**This command is disabled as the user have not starred <https://github.com/verixx/selfbot.py>**')
+        if not await git.starred('kyb3r/selfbot.py'): return await ctx.send('**This command is disabled as the user have not starred <https://github.com/kyb3r/selfbot.py>**')
         with open('data/cc.json') as f:
             commands = json.load(f)
         if option == 'all':
@@ -1193,16 +1193,19 @@ Thanks for your understanding.
     async def edit(self, ctx, name, *, value):
         """Edits an option"""
         name = name.upper()
-        with open('data/options.json') as f:
-            options = json.load(f)
-        try:
-            options[name]
-        except KeyError:
-            return await ctx.send('Not a valid option. View all with `{p}options list`')
+        if name != 'NICKPROTECT':
+            with open('data/options.json') as f:
+                options = json.load(f)
+            try:
+                options[name]
+            except KeyError:
+                return await ctx.send('Not a valid option. View all with `{p}options list`')
+            else:
+                options[name] = value
+                if await ctx.updatedata('data/options.json', json.dumps(options, indent=4), f'Update option: {name}'):
+                    await ctx.send('Option edited. Now wait for me to restart!')
         else:
-            options[name] = value
-            if await ctx.updatedata('data/options.json', json.dumps(options, indent=4), f'Update option: {name}'):
-                await ctx.send('Option edited. Now wait for me to restart!')
+            await ctx.send('Use `{p}nickprotect` to modify nick protect options.', delete_after=2)
     
     @options.command(name='list')
     async def __list(self, ctx):
@@ -1210,5 +1213,34 @@ Thanks for your understanding.
         with open ('data/options.json') as f:
             await ctx.send('```json\n' + json.dumps(json.load(f), indent=4) + '\n```')
 
+    @commands.group(invoke_without_command=True)
+    async def nickprotect(self, ctx):
+        '''Nick Protect Config'''
+        pass
+
+    @nickprotect.command()
+    async def append(self, ctx, serverid=None):
+        '''Adds a guild to nick protect'''
+        with open('data/options.json') as f:
+            options = json.load(f)
+        if serverid is None: serverid = ctx.guild.id
+        if serverid in options['NICKPROTECT']:
+            return await ctx.send('Server ID already in nickprotect.')
+        options['NICKPROTECT'].append(serverid)
+        if await ctx.updatedata('data/options.json', json.dumps(options, indent=4), f'Added {serverid} to nickprotect'):
+            await ctx.send('Server added. Now wait for me to restart!')
+
+    @nickprotect.command()
+    async def remove(self, ctx, serverid=None):
+        '''Removes a guild from nick protect'''
+        with open('data/options.json') as f:
+            options = json.load(f)
+        if serverid is None: serverid = ctx.guild.id
+        if serverid not in options['NICKPROTECT']:
+            return await ctx.send('Server ID not even in nickprotect.')
+        options['NICKPROTECT'].remove(serverid)
+        if await ctx.updatedata('data/options.json', json.dumps(options, indent=4), f'Removed {serverid} to nickprotect'):
+            await ctx.send('Server removed. Now wait for me to restart!')
+    
 def setup(bot):
     bot.add_cog(Utility(bot))
